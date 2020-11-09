@@ -1,11 +1,13 @@
 import pygame
+import os
 
 pygame.font.init()
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
-RED = (255, 0, 0)
-BLUE = (0, 0, 255)
+PURPLE = (186, 85, 211)
+TEAL = (0, 128, 128)
 GREEN = (0, 255, 0)
+RED = (255, 0, 0)
 WIDTH, HEIGHT = (550, 800)
 PLAY_WIDTH, PLAY_HEIGHT = (350, 550)
 block_size = 50
@@ -14,6 +16,7 @@ top_left_y = 100
 PIECES = []
 MOD_LIST = []
 n = 0
+BG = pygame.transform.scale(pygame.image.load(os.path.join('background.png')), (WIDTH, HEIGHT))
 win = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption('Checkers')
 player_1 = None
@@ -50,10 +53,13 @@ def highlight(p1, p2, color):
                 pygame.draw.rect(win, color, (top_left_x + inner_index*block_size, top_left_y + index*block_size, block_size, block_size), 4)
 
 
-def get_pos(x, y):
+def get_pos(x, y, isPiece):
     dist_x = abs(x - (WIDTH / 2 - PLAY_WIDTH / 2))
     dist_y = abs(y - (HEIGHT / 2 - PLAY_HEIGHT / 2))
-    column = round(dist_x / block_size)
+    if isPiece:
+        column = int(dist_x / block_size)
+    else:
+        column = round(dist_x / block_size)
     row = round(dist_y / block_size)
     return row, column
 
@@ -66,25 +72,60 @@ def check_error_indexing(test_value):
         return False
 
 
-def is_valid_move(init_pos, final_pos):
-    mat_list = matrix_list()
-    valid_distance = False
-    r1, c1 = get_pos(init_pos[0], init_pos[1])
-    r2, c2 = get_pos(final_pos[0], final_pos[1])
-    instances = [r1 + 1 == r2, r1 - 1 == r2, c1 + 1 == c2, c1 - 1 == c2]
-    if check_error_indexing(init_pos[1]):
-        if (r1+1) + 1 == r2 or (r1+1) - 1 == r2 and c1 + 1 == c2 or c1 - 1 == c2:
-            valid_distance = True
+def is_winning_move(pos1, pos2, pos3, pos4, error_check):
+    global PIECES, MOD_LIST
+    winning_move = False
+    if error_check:
+        p1 = pos1 + 1
     else:
-        if instances[0] or instances[1] and instances[2] or instances[3]:
-            valid_distance = True
-    if valid_distance:
-        if mat_list[r2][c2] == 0 or mat_list[r2][c2] == 1:
-            return valid_distance
-        else:
-            return not valid_distance
+        p1 = pos1
+    instances = [p1 + 2 == pos3, p1 - 2 == pos3, pos2 + 2 == pos4, pos2 - 2 == pos4]
+    piece_position = [(p1 + 1, pos2 + 1), (p1 - 1, pos2 - 1), (p1 + 1, pos2 - 1), (p1 - 1, pos2 + 1)]
+    if instances[0] or instances[1] and instances[2] or instances[3]:
+        for p in PIECES:
+            g = get_pos(p.x, p.y, True)
+            if g in piece_position:
+                PIECES.remove(p)
+                MOD_LIST[g[0]][g[1]] = 1
+                winning_move = True
+        return winning_move
     else:
         return False
+
+
+def is_valid_move(init_pos, final_pos):
+
+    error = False
+
+    if check_error_indexing(init_pos[1]):
+        error = True
+
+    valid_distance = False
+    r1, c1 = get_pos(init_pos[0], init_pos[1], False)
+    r2, c2 = get_pos(final_pos[0], final_pos[1], False)
+    won = is_winning_move(r1, c1, r2, c2, error)
+
+    if won:
+        return won
+    else:
+        instances = [r1 + 1 == r2, r1 - 1 == r2, c1 + 1 == c2, c1 - 1 == c2]
+        if error:
+            if (r1+1) + 1 == r2 or (r1+1) - 1 == r2 and c1 + 1 == c2 or c1 - 1 == c2:
+                valid_distance = True
+        else:
+            if instances[0] or instances[1] and instances[2] or instances[3]:
+                valid_distance = True
+        if game_started:
+            value = MOD_LIST[r2][c2]
+        else:
+            value = matrix_list()[r2][c2]
+        if valid_distance:
+            if value == 1:
+                return valid_distance
+            else:
+                return not valid_distance
+        else:
+            return False
 
 
 def check_play(piece, x, y, pos_x, pos_y):
@@ -94,12 +135,12 @@ def check_play(piece, x, y, pos_x, pos_y):
         n += 1
     else:
         mat_list = MOD_LIST
-    r2, c2 = get_pos(pos_x, pos_y)
-    r1, c1 = get_pos(x, y)
+    r2, c2 = get_pos(pos_x, pos_y, False)
+    r1, c1 = get_pos(x, y, False)
     if check_error_indexing(y):
-        mat_list[r1 + 1][c1] = 0
+        mat_list[r1 + 1][c1] = 1
     else:
-        mat_list[r1][c1] = 0
+        mat_list[r1][c1] = 1
     mat_list[r2][c2] = piece
     MOD_LIST = mat_list
     return MOD_LIST
@@ -125,11 +166,11 @@ def re_arrange_piece(data):
         for p, n in enumerate(l):
             if n == 'piece1':
                 x, y = ((top_left_x + p * block_size) + block_size / 2, (top_left_y + i * block_size) + block_size / 2)
-                piece = Piece(x, y, BLUE)
+                piece = Piece(x, y, TEAL)
                 pieces.append(piece)
             elif n == 'piece2':
                 x, y = ((top_left_x + p * block_size) + block_size / 2, (top_left_y + i * block_size) + block_size / 2)
-                piece = Piece(x, y, RED)
+                piece = Piece(x, y, PURPLE)
                 pieces.append(piece)
     PIECES = pieces
     return mat_list
@@ -162,13 +203,13 @@ def handle_click(event):
             if p.click(pos[0], pos[1]):
                 position = p.click(pos[0], pos[1])
                 clicked = True
-                if p.type() == RED:
+                if p.type() == PURPLE:
                     piece = 'piece2'
                 else:
                     piece = 'piece1'
     while clicked:
-        highlight(pos[0], pos[1], RED)
         for event in pygame.event.get():
+            highlight(pos[0], pos[1], BLACK)
             if event.type == pygame.MOUSEBUTTONDOWN:
                 new_pos = event.pos
                 if is_valid_move(position, new_pos):
@@ -201,7 +242,7 @@ def draw_board():
 
 def redraw_window(surface):
     global game_started
-    surface.fill(BLACK)
+    surface.blit(BG, (0, 0))
     draw_board()
     if not game_started:
         re_arrange_piece(arrange_piece())
