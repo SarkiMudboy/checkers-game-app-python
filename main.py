@@ -2,6 +2,7 @@ import pygame
 import os
 
 pygame.font.init()
+font = pygame.font.SysFont('monospace', 40, 3)
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 PURPLE = (186, 85, 211)
@@ -81,11 +82,15 @@ def is_winning_move(pos1, pos2, pos3, pos4, error_check):
         p1 = pos1
     instances = [p1 + 2 == pos3, p1 - 2 == pos3, pos2 + 2 == pos4, pos2 - 2 == pos4]
     piece_position = [(p1 + 1, pos2 + 1), (p1 - 1, pos2 - 1), (p1 + 1, pos2 - 1), (p1 - 1, pos2 + 1)]
+
+    for p in PIECES:
+        if get_pos(p.x, p.y, True) == (p1, pos2):
+            initPieceType = p.type()
+
     if instances[0] or instances[1] and instances[2] or instances[3]:
         for p in PIECES:
             g = get_pos(p.x, p.y, True)
-            if g in piece_position:
-                PIECES.remove(p)
+            if g in piece_position and p.type() != initPieceType:
                 MOD_LIST[g[0]][g[1]] = 1
                 winning_move = True
         return winning_move
@@ -128,16 +133,16 @@ def is_valid_move(init_pos, final_pos):
             return False
 
 
-def check_play(piece, x, y, pos_x, pos_y):
+def check_play(piece, pos1, pos2):
     global n, MOD_LIST
     if n == 0:
         mat_list = arrange_piece()
         n += 1
     else:
         mat_list = MOD_LIST
-    r2, c2 = get_pos(pos_x, pos_y, False)
-    r1, c1 = get_pos(x, y, False)
-    if check_error_indexing(y):
+    r2, c2 = get_pos(pos2[0], pos2[1], False)
+    r1, c1 = get_pos(pos1[0], pos1[1], False)
+    if check_error_indexing(pos1[1]):
         mat_list[r1 + 1][c1] = 1
     else:
         mat_list[r1][c1] = 1
@@ -213,7 +218,7 @@ def handle_click(event):
             if event.type == pygame.MOUSEBUTTONDOWN:
                 new_pos = event.pos
                 if is_valid_move(position, new_pos):
-                    data = check_play(piece, position[0], position[1], new_pos[0], new_pos[1])
+                    data = check_play(piece, position, new_pos)
                     re_arrange_piece(data)
                     pygame.display.update()
                     game_started = True
@@ -242,7 +247,9 @@ def draw_board():
 
 def redraw_window(surface):
     global game_started
+    label = font.render('Checkers', 1, GREEN)
     surface.blit(BG, (0, 0))
+    surface.blit(label, (WIDTH/2 - label.get_width()/2, 50))
     draw_board()
     if not game_started:
         re_arrange_piece(arrange_piece())
