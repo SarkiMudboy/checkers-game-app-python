@@ -17,12 +17,18 @@ top_left_y = 100
 PIECES = []
 MOD_LIST = []
 n = 0
+player_id = 0
 BG = pygame.transform.scale(pygame.image.load(os.path.join('background.png')), (WIDTH, HEIGHT))
 win = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption('Checkers')
-player_1 = None
-player_2 = None
 game_started = False
+
+
+class Player:
+    def __init__(self, id_num, score, piece):
+        self.id = id_num
+        self.score = score
+        self.piece = piece
 
 
 class Piece:
@@ -73,21 +79,17 @@ def check_error_indexing(test_value):
         return False
 
 
-def is_winning_move(pos1, pos2, pos3, pos4, error_check):
+def is_winning_move(pos1, pos2, ins):
     global PIECES, MOD_LIST
     winning_move = False
-    if error_check:
-        p1 = pos1 + 1
-    else:
-        p1 = pos1
-    instances = [p1 + 2 == pos3, p1 - 2 == pos3, pos2 + 2 == pos4, pos2 - 2 == pos4]
-    piece_position = [(p1 + 1, pos2 + 1), (p1 - 1, pos2 - 1), (p1 + 1, pos2 - 1), (p1 - 1, pos2 + 1)]
+
+    piece_position = [(pos1 + 1, pos2 + 1), (pos1 - 1, pos2 - 1), (pos1 + 1, pos2 - 1), (pos1 - 1, pos2 + 1)]
 
     for p in PIECES:
-        if get_pos(p.x, p.y, True) == (p1, pos2):
+        if get_pos(p.x, p.y, True) == (pos1, pos2):
             initPieceType = p.type()
 
-    if instances[0] or instances[1] and instances[2] or instances[3]:
+    if ins[0] and ins[1] or ins[2]:
         for p in PIECES:
             g = get_pos(p.x, p.y, True)
             if g in piece_position and p.type() != initPieceType:
@@ -100,26 +102,29 @@ def is_winning_move(pos1, pos2, pos3, pos4, error_check):
 
 def is_valid_move(init_pos, final_pos):
 
-    error = False
-
-    if check_error_indexing(init_pos[1]):
-        error = True
-
     valid_distance = False
     r1, c1 = get_pos(init_pos[0], init_pos[1], False)
     r2, c2 = get_pos(final_pos[0], final_pos[1], False)
-    won = is_winning_move(r1, c1, r2, c2, error)
+
+    if check_error_indexing(init_pos[1]):
+        r1 += 1
+    else:
+        pass
+
+    if player_id == 0:
+        instances = [r1 + 1 == r2, c1 + 1 == c2, c1 - 1 == c2]
+        instances1 = [r1 + 2 == r2, c1 + 2 == c2, c1 - 2 == c2]
+    else:
+        instances = [r1 - 1 == r2, c1 + 1 == c2, c1 - 1 == c2]
+        instances1 = [r1 - 2 == r2, c1 + 2 == c2, c1 - 2 == c2]
+
+    won = is_winning_move(r1, c1, instances1)
 
     if won:
         return won
     else:
-        instances = [r1 + 1 == r2, r1 - 1 == r2, c1 + 1 == c2, c1 - 1 == c2]
-        if error:
-            if (r1+1) + 1 == r2 or (r1+1) - 1 == r2 and c1 + 1 == c2 or c1 - 1 == c2:
-                valid_distance = True
-        else:
-            if instances[0] or instances[1] and instances[2] or instances[3]:
-                valid_distance = True
+        if instances[0] and instances[1] or instances[2]:
+            valid_distance = True
         if game_started:
             value = MOD_LIST[r2][c2]
         else:
@@ -199,19 +204,16 @@ def arrange_piece():
     return mat_list
 
 
-def handle_click(event):
+def handle_click(event, player):
     global game_started
     clicked = False
     if event.type == pygame.MOUSEBUTTONDOWN:
         pos = event.pos
         for p in set(PIECES):
-            if p.click(pos[0], pos[1]):
+            if p.click(pos[0], pos[1]) and p.type() == player.piece[0]:
                 position = p.click(pos[0], pos[1])
                 clicked = True
-                if p.type() == PURPLE:
-                    piece = 'piece2'
-                else:
-                    piece = 'piece1'
+                piece = player.piece[1]
     while clicked:
         for event in pygame.event.get():
             highlight(pos[0], pos[1], BLACK)
@@ -221,6 +223,7 @@ def handle_click(event):
                     data = check_play(piece, position, new_pos)
                     re_arrange_piece(data)
                     pygame.display.update()
+                    flipPlayer(player)
                     game_started = True
                     clicked = False
                 else:
@@ -258,12 +261,25 @@ def redraw_window(surface):
     pygame.display.update()
 
 
+def flipPlayer(current_player):
+    global player_id
+    player_id = (current_player.id + 1) % 2
+
+
 def main():
     run = True
     clock = pygame.time.Clock()
+    player_1 = Player(0, 0, (TEAL, 'piece1'))
+    player_2 = Player(1, 0, (PURPLE, 'piece2'))
 
     while run:
         clock.tick(60)
+
+        if player_id == 0:
+            player = player_1
+        else:
+            player = player_2
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -272,7 +288,7 @@ def main():
                 posx = event.pos[0]
                 posy = event.pos[1]
                 highlight(posx, posy, GREEN)
-            handle_click(event)
+            handle_click(event, player)
         pygame.display.update()
         redraw_window(win)
 
