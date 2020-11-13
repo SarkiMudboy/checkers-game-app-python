@@ -3,6 +3,7 @@ import os
 
 pygame.font.init()
 font = pygame.font.SysFont('monospace', 40, 3)
+font2 = pygame.font.SysFont('monospace', 17)
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 PURPLE = (186, 85, 211)
@@ -18,6 +19,7 @@ PIECES = []
 MOD_LIST = []
 n = 0
 player_id = 0
+win_data = [0, 0]
 BG = pygame.transform.scale(pygame.image.load(os.path.join('background.png')), (WIDTH, HEIGHT))
 win = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption('Checkers')
@@ -100,7 +102,7 @@ def is_winning_move(pos1, pos2, ins):
         return False
 
 
-def is_valid_move(init_pos, final_pos):
+def is_valid_move(init_pos, final_pos, player):
 
     valid_distance = False
     r1, c1 = get_pos(init_pos[0], init_pos[1], False)
@@ -111,7 +113,7 @@ def is_valid_move(init_pos, final_pos):
     else:
         pass
 
-    if player_id == 0:
+    if player.id == 0:
         instances = [r1 + 1 == r2, c1 + 1 == c2, c1 - 1 == c2]
         instances1 = [r1 + 2 == r2, c1 + 2 == c2, c1 - 2 == c2]
     else:
@@ -121,6 +123,8 @@ def is_valid_move(init_pos, final_pos):
     won = is_winning_move(r1, c1, instances1)
 
     if won:
+        player.score += 1
+        win_data[player.id] = player.score
         return won
     else:
         if instances[0] and instances[1] or instances[2]:
@@ -219,7 +223,7 @@ def handle_click(event, player):
             highlight(pos[0], pos[1], BLACK)
             if event.type == pygame.MOUSEBUTTONDOWN:
                 new_pos = event.pos
-                if is_valid_move(position, new_pos):
+                if is_valid_move(position, new_pos, player):
                     data = check_play(piece, position, new_pos)
                     re_arrange_piece(data)
                     pygame.display.update()
@@ -251,13 +255,20 @@ def draw_board():
 def redraw_window(surface):
     global game_started
     label = font.render('Checkers', 1, GREEN)
+    score0 = font2.render(f'player1: {win_data[0]}', 1, WHITE)
+    score1 = font2.render(f'player2: {win_data[1]}', 1, WHITE)
     surface.blit(BG, (0, 0))
-    surface.blit(label, (WIDTH/2 - label.get_width()/2, 50))
+    surface.blit(label, (WIDTH/2 - label.get_width()/2, 20))
     draw_board()
     if not game_started:
         re_arrange_piece(arrange_piece())
     else:
         re_arrange_piece(MOD_LIST)
+    pygame.draw.circle(surface, PURPLE, (31, 40), 17)
+    pygame.draw.circle(surface, TEAL, (519, 40), 17)
+    surface.blit(score0, (10, 60))
+    surface.blit(score1, (WIDTH - (score1.get_width() + 10), 60))
+
     pygame.display.update()
 
 
