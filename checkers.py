@@ -32,7 +32,7 @@ multiple_stash = {'knocked pieces': [],
                   'drift': (),
                   'instant_drift': (),
                   'instant-pos': ()}
-BG = pygame.transform.scale(pygame.image.load(os.path.join('background.png')), (WIDTH, HEIGHT))
+BG = pygame.transform.scale(pygame.image.load(os.path.join('background.jpg')), (WIDTH, HEIGHT))
 win = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption('Checkers')
 game_started = False
@@ -62,8 +62,7 @@ class Piece:
         pygame.draw.circle(surface, self.color, (int(self.x), int(self.y)), self.radius)
 
     def click(self, position_x, position_y):
-        if (self.x - block_size / 2) <= position_x <= (self.x + block_size / 2) and (
-                self.y - block_size / 2) <= position_y <= (self.y + block_size / 2):
+        if (self.x - block_size / 2) <= position_x <= (self.x + block_size / 2) and (self.y - block_size / 2) <= position_y <= (self.y + block_size / 2):
             return self.x - block_size / 2, self.y - block_size / 2
         else:
             return False
